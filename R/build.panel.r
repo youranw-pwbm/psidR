@@ -139,7 +139,7 @@
 #' # #####################################################################
 build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,heads.only=FALSE,current.heads.only=FALSE,sample=NULL,design="balanced",loglevel=INFO){
 	
-  	flog.threshold(loglevel)
+  flog.threshold(loglevel)
 
 	# locally bind all variables to be used in a data.table
 	# or R CMD CHECK complains.
@@ -200,7 +200,8 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 		# if any of 1984, 1989, 1994, 1999, 2001, 2003, 2005, 2007 in years, also download the associated wealth supplement
 	  wlth = data.frame(year=c(1984, 1989, 1994, 1999, 2001, 2003, 2005, 2007),file=c(1147,1148,1149,1150,1130,1131,1133,1140))
 		flog.debug("working on wealth")
-		#wlth = wlth[wealth.vars$year %in% years, ]
+		intersectyears <- intersect(wealth.vars$year,wlth$year)
+		wlth <- filter(wlth, year %in% intersectyears)
 		flog.debug("wlth: ",wlth, capture=TRUE)
 
 		if ( nrow(wlth) > 0 ){
@@ -567,6 +568,8 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 			setnames(tmp,curnames)
 			setkey(tmp,interview)
 		}
+		print("line 547")
+		print(curvars)
 		
 		# merge family and yind
 		m <- copy(tmp[yind])
@@ -593,6 +596,8 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 				curvars[,name := tolower(name)]
 				curvars[,variable := tolower(variable)]
 				curvars[,interview := tolower(interview)]
+				print("line 599")
+				print(curvars)
 
 				setnames(tmp,tolower(names(tmp)))
 				flog.debug("wealth tmp: ",head(tmp),capture=TRUE)
