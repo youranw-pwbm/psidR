@@ -285,14 +285,14 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 					get.psid( family[ i , 'file' ] ,name= paste0(datadir, "FAM" , family[ i , 'year' ], "ER") , params , curl )
 				}
 			}
-			if (any.wealth){
-		    	for ( i in 1:nrow(wlth)){
-		      		if (!(wlth.down[i])){
-		        		get.psid( wlth[ i , 'file' ] ,name= paste0(datadir, "WEALTH" , wlth[ i , 'year' ], "ER") , params , curl )
-		      		}
-		    	}
-			}
-			
+		if (any.wealth){
+	    	for ( i in 1:nrow(wlth)){
+	      		if (!(wlth.down[i])){
+	        		get.psid( wlth[ i , 'file' ] ,name= paste0(datadir, "WEALTH" , wlth[ i , 'year' ], "ER") , params , curl )
+	      		}
+	    	}
+		}
+		
 			# check if datadir contains individual index already
 			if (!("IND2019ER.rda" %in% lf)) {
 				#download latest individual index
