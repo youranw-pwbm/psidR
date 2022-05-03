@@ -200,8 +200,8 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 		# if any of 1984, 1989, 1994, 1999, 2001, 2003, 2005, 2007 in years, also download the associated wealth supplement
 	  wlth = data.frame(year=c(1984, 1989, 1994, 1999, 2001, 2003, 2005, 2007),file=c(1147,1148,1149,1150,1130,1131,1133,1140))
 		flog.debug("working on wealth")
-		intersectyears <- intersect(wealth.vars$year,wlth$year)
-		wlth <- filter(wlth, year %in% intersectyears)
+		wlth_year_Li <- intersect(wealth.vars$year,wlth$year)
+		wlth <- filter(wlth, year %in% wlth_year_Li)
 		flog.debug("wlth: ",wlth, capture=TRUE)
 
 		if ( nrow(wlth) > 0 ){
@@ -308,6 +308,8 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 		}
 	}  # end download data
 
+	
+	# check if everything makes sense in the data directory
 	l <- list.files(datadir)
 	if (length(l)==0) stop('there is something wrong with the data directory. please check path')
 	for (i in 1:length(l)) {
@@ -316,16 +318,55 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 	}
 	if (!(exists("ftype"))) stop("No .rda or .RData files found in directory\n you need to download data first.")
 
-	flog.info('psidR: Loading Family data from .rda files')
-	# familiy data downloaded directly into a dataframe
-	fam.dat  <- paste0(datadir,grep("FAM",l,value=TRUE,ignore.case=TRUE))
-	fam.dat  <- grep(paste(years,collapse="|"),fam.dat,value=TRUE)
 
-	# wealth data downloaded directly into a dataframe
-	if (any.wealth){
-		wlth.dat  <- paste0(datadir,grep("WEALTH",l,value=TRUE,ignore.case=TRUE))
-		wlth.dat  <- grep(paste(years,collapse="|"),wlth.dat,value=TRUE)
+	## youranw-pwbm: a quick and dirty fix here
+	# merge all wealth data files with main family data files before the var selection
+	# find out the id var in main family files and wealth files
+	id_dict <- data.frame(matrix(unlist(wlth_year_Li), nrow = length(wlth_year_Li), byrow = TRUE)) %>%
+	  setNames(c('year')) %>%
+	  mutate(fam_id = getNamesPSID("V3", cwf, years = wlth_year_Li)$variable) %>%
+	  mutate(wlth_id = getNamesPSID("S101", cwf, years = wlth_year_Li)$variable)
+
+	# initialize a list to save the path of updated fam (+ wealth) files
+	famwlth.dat = vector(mode = "list", length = length(years))
+
+	# iterate over all years
+	for (y in years){
+
+	  # if this specific year involves a separated wealth file
+	  if(is.element(y, wlth_year_Li)) {
+
+	    print(paste0("Merging year ", y, " main family file and wealth file."))
+
+	    # first save .rda and as .rds to avoid some naming issues
+	    tmp.env  <- new.env()
+	    load(paste0(datadir,'FAM', y, 'ER.rda'), envir=tmp.env)
+	    fam      <- get(ls(tmp.env),tmp.env)
+	    load(paste0(datadir,'WEALTH', y, 'ER.rda'), envir=tmp.env)
+	    wlth      <- get(ls(tmp.env),tmp.env)
+
+	    # get the id var from the previously generated data frame
+	    fam_id_name = id_dict[which(id_dict$year == y), 'fam_id']
+	    wlth_id_name = id_dict[which(id_dict$year == y), 'wlth_id']
+
+	    # merge and save as a new name
+	    fam = left_join(fam, wlth, by = setNames(wlth_id_name, fam_id_name)) # need to use the setNames() function otherwise fam_id_name will be treated as a plain string "fam_id_name"
+	    save(fam, file = file.path(datadir, paste0('FAMWLTH', y, 'ER.rda'))) # save with the original name
+
+	    # add the path to the list
+	    famwlth.dat[match(y, years)] <- paste0(datadir,'FAMWLTH', y, 'ER.rda')
+	  }
+
+	  # if this specific year does not involve a separated wealth file
+	  else{
+	    # add the path to the list
+	    famwlth.dat[match(y, years)] <- paste0(datadir,'FAM', y, 'ER.rda')
+	  }
 	}
+
+	# from now on treat wealth.vars as a part of fam.vars
+	fam.vars = left_join(fam.vars, wealth.vars, by = "year")
+	flog.info('psidR: got all family files ready')
 
 	# individual index
 	tmp <- grep("IND",l,value=TRUE,ignore.case=TRUE)
@@ -389,9 +430,8 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 	for (iy in 1:length(years)){
 		
 		flog.info('psidR: currently working on data for year %d',years[iy])
-		
  
-   		# keeping only relevant columns from individual file
+   	# keeping only relevant columns from individual file
 		# subset only if requested.
 		curr <- ids[list(years[iy])]
 		if (years[iy] == 1968){
@@ -532,13 +572,14 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 		# ==================================
 
 		# load data for current year, make data dictionary for subsets and save data as data.table
+		print(famwlth.dat[[iy]])
 		rm(list=ls(envir=tmp.env),envir=tmp.env)
-	   	load(file=fam.dat[iy],envir=tmp.env)
+	   	load(file=famwlth.dat[[iy]],envir=tmp.env)
 		tmp             <- get(ls(tmp.env),tmp.env)	# assign loaded dataset a new name
 		tmp             <- data.table(tmp)
 		
 		vs = ceiling(object.size(tmp)/1024^2)
-		flog.debug('loaded family file: ',fam.dat[iy])
+		flog.debug('loaded family file: ',famwlth.dat[iy])
 		flog.debug('current memory load in MB: %d',vs)
 
 
@@ -568,54 +609,13 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 			setnames(tmp,curnames)
 			setkey(tmp,interview)
 		}
-		print("line 547")
-		print(curvars)
 		
 		# merge family and yind
 		m <- copy(tmp[yind])
 		m[,year := years[iy] ]
 		setkey(m,interview)
 
-		# bring in wealth files, subset them
-		# ==================================
-		# merge m and wealth
-		if (any.wealth){
-
-			# check if there is a wealth file for this year
-			iw = grep(years[iy],wlth.dat,value=TRUE)
-			if (length(iw)>0){
-				rm(list=ls(envir=tmp.env),envir=tmp.env)
-			   	load(file=iw,envir=tmp.env)
-				tmp             <- get(ls(tmp.env),tmp.env)	# assign loaded dataset a new name
-				tmp             <- data.table(tmp)
-				flog.debug("wealth tmp: ",head(tmp),capture=TRUE)
-
-			  # convert all variable names to lower case in both fam.vars and data file
-				curvars <- wealth.vars[list(years[iy]),which(names(wealth.vars)!="year"),with=FALSE]
-				flog.debug("wealth curvars: ",curvars,capture=TRUE)
-				curvars[,name := tolower(name)]
-				curvars[,variable := tolower(variable)]
-				curvars[,interview := tolower(interview)]
-				print("line 599")
-				print(curvars)
-
-				setnames(tmp,tolower(names(tmp)))
-				flog.debug("wealth tmp: ",head(tmp),capture=TRUE)
-
-				# current set of variables
-				codes <- c(curvars[,variable],curvars[,interview][[1]])
-				flog.debug("wealth codes: ",codes,capture=TRUE)
-				tmp   <- copy(tmp[,codes,with=FALSE])
-				setnames(tmp,c(curvars[,name],"interview"))
-				flog.debug("wealth tmp: ",head(tmp),capture=TRUE)
-				setkey(tmp,interview)
-
-		    # merge m and wealthfile
-			  m <- merge(m,tmp,all.x=TRUE)
-
-			}  # end wealth files
-		}
-	
+		
 		# note: a person who does not respond in wave x has an interview number in that wave, but NAs in the family file variables. remove those records.
 		idx <- which(!is.na(unlist(fam.vars[list(years[iy])][,curnames,with=FALSE])))[1]	# index of first non NA variable
 		m[,isna := is.na(m[,curnames[idx],with=FALSE])]
@@ -624,7 +624,6 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 		# all remaining NAs are NAs which the user knows about and actually requested when specifying fam.vars
 		# if (iy>1)	setcolorder(m,names(datas[[1]]))
 		datas[[iy]] <- copy(m)
-
 
 	}  # end year
 	
