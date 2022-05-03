@@ -813,10 +813,11 @@ build.psid <- function(datadr="~/datasets/psid/",small=TRUE,wealth=FALSE){
 #' getNamesPSID("ER17013", cwf, years = 2003)
 #' getNamesPSID("ER17013", cwf, years = NULL)
 #' getNamesPSID("ER17013", cwf, years = c(2005, 2007, 2009))
-getNamesPSID <- function(aname, cwf, years = NULL){
+getNamesPSID <- function(aname, cwf, years = NULL, file = NULL){
     myvar <- which(cwf == aname, arr.ind=TRUE)
     ## variables that begin with Y
     ynames.all <- grep("^Y", colnames(cwf))
+    ynames.labs <- grep("^Y", colnames(cwf),value = TRUE)
 
     if (is.null(years)){
         yearkeep <- ynames.all
@@ -827,6 +828,10 @@ getNamesPSID <- function(aname, cwf, years = NULL){
         ynames.labs <- ynames.labs[iyearkeep]
     }
     ovalue <- transpose(cwf[myvar[1], yearkeep, drop = FALSE])
-    ovalue$V1
+    od = data.frame(year = ynames.labs, variable = ovalue$V1)
+    if (!is.null(file)){
+      write.table(od,file = file,row.names = FALSE)
+    }
+    od
 }
 
