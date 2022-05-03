@@ -200,7 +200,7 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 		# if any of 1984, 1989, 1994, 1999, 2001, 2003, 2005, 2007 in years, also download the associated wealth supplement
 	  wlth = data.frame(year=c(1984, 1989, 1994, 1999, 2001, 2003, 2005, 2007),file=c(1147,1148,1149,1150,1130,1131,1133,1140))
 		flog.debug("working on wealth")
-		wlth = wlth[wealth.vars$year %in% years, ]
+		#wlth = wlth[wealth.vars$year %in% years, ]
 		flog.debug("wlth: ",wlth, capture=TRUE)
 
 		if ( nrow(wlth) > 0 ){
