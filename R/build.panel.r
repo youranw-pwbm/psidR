@@ -181,7 +181,7 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth1984.vars=NULL
 	wlth.down <- TRUE  # initiate to something
 
 	# all psid family files
-	family    <- data.frame(year = c( 1968:1997 , seq( 1999 , 2017 , 2 ) ),file = c( 1056 , 1058:1082 , 1047:1051 , 1040 , 1052 , 1132 , 1139 , 1152  , 1156, 1164 , 1183 , 1187))
+	family    <- data.frame(year = c( 1968:1997 , seq( 1999 , 2019 , 2 ) ),file = c( 1056 , 1058:1082 , 1047:1051 , 1040 , 1052 , 1132 , 1139 , 1152  , 1156, 1164 , 1183 , 1187))
 	# family    <- data.frame(year = c( 1968:1997 , seq( 1999 , 2013 , 2 ) ),file = c( 1056 , 1058:1082 , 1047:1051 , 1040 , 1052 , 1132 , 1139 , 1152  , 1156, 1164  ))
 
 	#subset to the years we want
@@ -215,7 +215,7 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth1984.vars=NULL
 
 	ind.down <- FALSE
 	# check if datadir contains individual index already
-	if (("IND2015ER.rda" %in% lf) | ("IND2015ER.RData" %in% lf)) {
+	if (("IND2019ER.rda" %in% lf) | ("IND2019ER.RData" %in% lf)) {
 		#download latest individual index
 		ind.down = TRUE
 	}
@@ -227,7 +227,7 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth1984.vars=NULL
 			flog.info("will download family files: %s",paste(family[!families.down,"year"],collapse=", "))
 		} 
 		if (!ind.down) {
-			flog.info("will download: IND2015ER")
+			flog.info("will download: IND2019ER")
 		} 
 		if (!wlth.down) {
 			flog.info("will download missing wealth files.")
@@ -286,9 +286,9 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth1984.vars=NULL
 			}
 			
 			# check if datadir contains individual index already
-			if (!("IND2017ER.rda" %in% lf)) {
+			if (!("IND2019ER.rda" %in% lf)) {
 				#download latest individual index
-				get.psid( 1053 ,name= paste0(datadir, "IND2017ER") , params , curl )
+				get.psid( 1053 ,name= paste0(datadir, "IND2019ER") , params , curl )
 			}
 
 			flog.info('finished downloading files to %s', datadir)
@@ -821,8 +821,10 @@ getNamesPSID <- function(aname, cwf, years = NULL){
     if (is.null(years)){
         yearkeep <- ynames.all
     } else {
+        iyearkeep <- ynames.labs %in% yearkeep
         yearkeep <- paste0("Y", years)
         yearkeep <- yearkeep[yearkeep %in% colnames(cwf)]
+        ynames.labs <- ynames.labs[iyearkeep]
     }
     ovalue <- transpose(cwf[myvar[1], yearkeep, drop = FALSE])
     ovalue$V1
