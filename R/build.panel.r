@@ -857,12 +857,12 @@ getNamesPSID <- function(aname, cwf, years = NULL, file = NULL){
     
     # youranw-pwbm: a quick and dirty fix here
     #--------------------------------------------------------------------------------------------------
-    # There is an issue with the psid-cross-year-index crosswalk (cwf) used in this step:
+    # There is an issue with the psid-cross-year-index crosswalk (cwf) :
     # those all-year-individual-level vars (e.g. SEX OF INDIVIDUAL ER32000) are only put in the column 
-    # of the most recent year
+    # of the most recent year.
     #
-    # We would get around this by checking if the given var is in the following all-year-individual-level var list
-    # before return the dataframe od. And fill in the blanks if so. 
+    # To get around this issue, for every given var, we would check if it is in the following 
+    # all-year-individual-level var list before return od, and fill in the blanks if needed. 
     #--------------------------------------------------------------------------------------------------
     all_year_ind_var_li <- c('ER31987', 'ER31988', 'ER31989', 'ER31990', 'ER31991', 'ER31992',
                              'ER31993', 'ER31994', 'ER31995', 'ER31996', 'ER31997', 'ER32000',
