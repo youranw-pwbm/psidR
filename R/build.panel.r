@@ -182,7 +182,6 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 
 	# all psid family files
 	family    <- data.frame(year = c( 1968:1997 , seq( 1999 , 2019 , 2 ) ),file = c( 1056 , 1058:1082 , 1047:1051 , 1040 , 1052 , 1132 , 1139 , 1152  , 1156, 1164 , 1183 , 1187 , 1194))
-	# family    <- data.frame(year = c( 1968:1997 , seq( 1999 , 2013 , 2 ) ),file = c( 1056 , 1058:1082 , 1047:1051 , 1040 , 1052 , 1132 , 1139 , 1152  , 1156, 1164  ))
 
 	#subset to the years we want
 	family <- family[family$year %in% years, ]
@@ -281,7 +280,7 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 			#it must always be the last file in this list.
 			#you always want to download that.
 
-			for ( i in 1:nrow( family )) {
+			for ( i in 1:nrow(family)) {
 				if (!(paste0("FAM" , family[ i , 'year' ], "ER.rda") %in% lf)) {
 					get.psid( family[ i , 'file' ] ,name= paste0(datadir, "FAM" , family[ i , 'year' ], "ER") , params , curl )
 				}
@@ -465,7 +464,7 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 
 			# issue https://github.com/floswald/psidR/issues/4
 			# ------------------------------------------------
-			# check for NA in ind.vars: these are years when a certain variable isn not available in the individual index file.
+			# check for NA in ind.vars: these are years when a certain variable is not available in the individual index file.
 			# adjust for first year (1968) when `sequence` was not available
 			ind.notnas <- NULL
 			if (any(is.na(ind.vars.yr))){
@@ -836,11 +835,15 @@ build.psid <- function(datadr="~/datasets/psid/",small=TRUE,wealth=FALSE){
 #' getNamesPSID("ER17013", cwf, years = NULL)
 #' getNamesPSID("ER17013", cwf, years = c(2005, 2007, 2009))
 getNamesPSID <- function(aname, cwf, years = NULL, file = NULL){
+    
+    # find the given var name in cwf
     myvar <- which(cwf == aname, arr.ind=TRUE)
-    ## variables that begin with Y
+    
+    # distinguish the year cols in cwf (those with names that begin with Y)
     ynames.all <- grep("^Y", colnames(cwf))
     ynames.labs <- grep("^Y", colnames(cwf),value = TRUE)
-
+    
+    # retrieve the year-specific var names from cwf
     if (is.null(years)){
         yearkeep <- ynames.all
     } else {
@@ -851,6 +854,32 @@ getNamesPSID <- function(aname, cwf, years = NULL, file = NULL){
     }
     ovalue <- transpose(cwf[myvar[1], yearkeep, drop = FALSE])
     od = data.frame(year = ynames.labs, variable = ovalue$V1)
+    
+    # youranw-pwbm: a quick and dirty fix here
+    #--------------------------------------------------------------------------------------------------
+    # There is an issue with the psid-cross-year-index crosswalk (cwf) used in this step:
+    # those all-year-individual-level vars (e.g. SEX OF INDIVIDUAL ER32000) are only put in the column 
+    # of the most recent year
+    #
+    # We would get around this by checking if the given var is in the following all-year-individual-level var list
+    # before return the dataframe od. And fill in the blanks if so. 
+    #--------------------------------------------------------------------------------------------------
+    all_year_ind_var_li <- c('ER31987', 'ER31988', 'ER31989', 'ER31990', 'ER31991', 'ER31992',
+                             'ER31993', 'ER31994', 'ER31995', 'ER31996', 'ER31997', 'ER32000',
+                             'ER32001', 'ER32002', 'ER32003', 'ER32004', 'ER32005', 'ER32006',
+                             'ER32007', 'ER32008', 'ER32009', 'ER32010', 'ER32011', 'ER32012',
+                             'ER32013', 'ER32014', 'ER32015', 'ER32016', 'ER32017', 'ER32018',
+                             'ER32019', 'ER32020', 'ER32021', 'ER32022', 'ER32023', 'ER32024',
+                             'ER32025', 'ER32026', 'ER32027', 'ER32028', 'ER32029', 'ER32030',
+                             'ER32031', 'ER32032', 'ER32033', 'ER32034', 'ER32035', 'ER32036',
+                             'ER32037', 'ER32038', 'ER32039', 'ER32040', 'ER32041', 'ER32042',
+                             'ER32043', 'ER32044', 'ER32045', 'ER32046', 'ER32047', 'ER32048',
+                             'ER32049', 'ER32050', 'ER32051')
+    if (is.element(aname, all_year_ind_var_li)){
+      od$variable = aname
+    }
+    
+    # write to specified file
     if (!is.null(file)){
       write.table(od,file = file,row.names = FALSE)
     }
