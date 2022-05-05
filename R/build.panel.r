@@ -319,7 +319,17 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,wealth.vars=NULL,hea
 	if (!(exists("ftype"))) stop("No .rda or .RData files found in directory\n you need to download data first.")
 
 
-	## youranw-pwbm: a quick and dirty fix here
+	# youranw-pwbm: a quick and dirty fix here
+	#--------------------------------------------------------------------------------------------------
+	# The tricky thing about wealth vars is, in early waves, they are reported in a separated wealth data file,
+	# yet in recent waves they become a part of the main family file. 
+	# Therefore, it would not be easy if we want to maintain a clear distinction between wealth.vars and fam.vars, or
+	# WLTH data files and FAM data files, and deal with the two separately. 
+	# 
+	# One way to get around this is merging the WLTH files with the FAM files (for whichever waves when 
+	# the two are put in separated files), then merging the wealth.vars with the fam.vars, and then subseting
+	# the 'amplified' FAMWLTH files based on the 'amplified' set of variables.
+	#--------------------------------------------------------------------------------------------------
 	# merge all wealth data files with main family data files before the var selection
 	# find out the id var in main family files and wealth files
 	id_dict <- data.frame(matrix(unlist(wlth_year_Li), nrow = length(wlth_year_Li), byrow = TRUE)) %>%
